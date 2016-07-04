@@ -2,7 +2,7 @@
 
 ## Notes
 
-* First, add the root of this project to your GOPATH
+* First, add the root of this project to your GOPATH(it is necessory for go build and go test!)
     + You can do it like this  
 	  `export GOPATH=$GOPATH:xxxx`
 	+ or you can write it in you ~/.bashrc and source ~/.bashrc
