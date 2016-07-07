@@ -1,0 +1,391 @@
+========================================================================================================
+安装go
+
+源码安装./configure make make install
+
+设置GOROOT, GOPATH, PATH, 分开填写方便管理
+
+goroot, path要在/etc/profile里填写
+GOROOT=/usr/local/go(一般在这里) (官方包路径)
+export GOROOT
+
+PATH=$PATH:$GOROOT/bin
+export PATH
+
+gopath要在~/.bashrc里面设置
+GOPATH=$HOME(工作目录路径, 因为没有，所以先随便填一个)
+export GOPATH
+
+========================================================================================================
+编译方法
+ 将工程路径(根目录)添加到$GOPATH
+
+ go builid xx  其中xx是(包含main()函数的xx.go文件的)目录名字
+ 整个编译过程只会在当前一个目录生成一个可执行文件, 一般在bin目录下编译
+
+ 或者用 (推荐使用)
+ go install xx
+ 编译过程会自动在src同级目录下生成bin目录， pkg目录
+ 1. 自动将生成的可执行文件放在bin目录下
+ 2. 自动将生成的库文件放在pkg目录下
+ 3. 无论在哪执行go install xx, 结果都一样(只要设置了$GOPATH)
+
+天生支持gdb
+gdb ./calc
+
+
+========================================================================================================
+go 常用命令
+
+go build / go install包名	编译
+godoc 包名  				生成包的文档
+go fmt 包名					格式化代码
+go get url					从指定网址下载(谷歌， github...)
+go test 包名				test库包
+go version
+go vet 包名/go tool vet包名 检查包的错误
+
+======================================================================================================
+
+测试库的方法
+	在编写每个库文件的同时，编写相应的xx_test.go文件
+
+	运行 go test XX　　其中XX　是库文件所在包的包名
+
+=======================================================================================================
+vim 添加go 插件
+
+TODO
+
+======================================================================================================
+
+第二章 顺序编程
+
+1. 变量 常用的变量定义
+	var v1 int			int 型
+	var v2 string		字符串
+	var v3 [10]int		10元素数组
+	var v4 []int		切片
+	var v5 struct{		结构
+		f int
+	}
+	var v6 *int			指针
+	var v7 map[key]val  map
+	var v8 func(a int) int  匿名函数变量
+
+支持
+	var (
+		v1 int
+		v2 string
+	)
+来避免重复些var
+
+初始化
+	var v1 int = 10  指定类型
+	var v2 = 10      自动推导类型
+	v3 := 10		只能在函数内部用的自动推导类型
+
+赋值
+	var v int
+	v  = 10
+
+支持多变量赋值
+	i, j = j, i
+
+支持匿名变量 _ 接受不关心的变量
+	
+	ret, _ = strconv.Atoi("1234")
+	_ 接受赋值，但自动丢弃该值
+
+
+常量
+
+字面常量例如－12属于能存下它的任意类型如int, float32...
+
+常量定义
+	const Pi float64 = 3.1415926 有类型常量
+	const Zero = 0.0   无类型常量 属于能包含它的任意类型
+	const 不自动推导而是形成无类型常量, 但字符串常量除外
+
+支持const ()
+
+	const (
+		size int64 = 1024
+		eof  = -1
+	)
+
+支持多重赋值
+	const u, v = 1, 2
+
+支持常量表达式
+	const v = 1 << 3
+
+
+go预定义常量 true, false, iota
+const 出现时iota 变0，iota每次出现都自动++iota 
+
+const (
+	c0 = iota   // 1
+	c1 = iota   // 2
+)
+
+const 特殊简写
+	如果const的赋值语句是完全一样的，则可以省略后一个＝和＝右边的
+const (
+	c0 = iota
+	c1
+	c2
+)
+
+const 实现枚举
+const (
+	Sunday = iota
+	Monday
+	Tuesday
+	Wednesday
+	Thursday
+	Friday
+	Saturday
+	numberofdays
+)
+值得注意的是大写字母开头的变量是包外可见的，小写字母开头的numberofdays是包外不可见的
+
+
+
+常用类型
+
+bool: true, false 
+不同类型不能相互赋值, 其中bool类型不支持类型转换
+
+var v1 bool
+v1 = 1 //错, 1 是字面常量但不再bool类型的范围里
+v1 = bool(1) //错, 其他类型可以
+
+int
+	int 和 int32是两种不同的类型
+	一般整型常数会自动推导成int 类型 常用于:= 定义并初始化变量时
+	var v1 int32
+	v2 := 64 //v2是int 类型
+	v1 = int32(v2) //对
+	如果精度丢失和溢出都不会发生则可以强转
+
+float32/float64
+
+	比较浮点数值大小，不能用==
+	用math.Fdim() 函数
+
+
+复数类型 complex64 表示实部，虚部都32位
+	先不考虑
+	
+ 	value2 := 3.2 + 12i
+	real(value2), imag(value2)可访问实部， 虚部
+
+
+字符串 string
+
+	var v1 string = "hello, world"
+	用len()可以获得字符串，数组，切片的成员个数
+
+	len(v1) 没哟尾0
+	
+	字符串遍历, unicode 字符遍历,英文占 1个字节，中文占3个字节
+	但他们都是一个rune 字符
+
+	用range 遍历string， array, slice
+	for k,v := range(v1) {
+		//k 是key
+		//v 是value
+	}
+
+	如果以单字节的方式遍历，字符串含中文是会出现问题
+	
+	for i:= 0; i > len(str); i++ {
+		//并不是每个字符都占一个字节
+	}
+	
+数组
+	[32]byte					长度为32， 元素为byte类型
+	[32]struct{x, y int32}		长度为32， 元素为struct类型	
+	[32]*float64				长度是32， 元素为指针
+	[3][5]int					长度是3，  元素为 [5]int数组
+	[2][2][2]float64			长度是2，  元素是 [2][2]float64数组
+
+	数组是值类型，在函数传参中会传一份拷贝，不传递指针
+
+
+	 数组的等号右边写法
+	 [5]int{1, 2, 3, 4, 5} 右边也要带上类型
+
+切片, 不定长数组
+	 包含:
+		一个指向自己的指针
+		元素个数
+		容量
+
+创建切片方法:
+	1。 基于数组，用数组的元素创建切片
+		var array [10]int = [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+		var slice []int = array[:5]
+
+		[:]为左开右闭的原则, [:5]及 下标为0, 1, 2, 3, 4的元素 
+		左开右闭的好处是前5个元素写成[:5]就可以， 因为下标是从0开始的，不用写成[:4]
+	
+	2。 直接创建， 用make(类型， 个数)
+
+		slice := make([]int, 5) 默认初始元素为0
+
+		slice := make([]int, 5, 10) 创建元素个数为5， 容量为10， 的int切片
+		len(slice) 查看切片中元素的个数
+		cap(slice) 查看切片分配的空间(可变)
+
+		或者用数组的方法，它本身是个数组
+		slice := []int{1, 2, 3, 4, 5}
+	
+	3。 给予切片创建切片, 于基于数组方法一样
+		var slice1 []int = []int{1, 2, 3, 4}
+		var slice2 []int = slice1[:3]
+		有趣的是， slice1[:5]也是可以的，超过的部分自动补0, 但不能超过slice1的cap
+
+
+slice 遍历同数组，可以用len()， 可以用range()
+
+向slice 追加元素 append(slice, 元素1， 元素2...)函数
+	append()函数的第二个参数可以是slice 但必须写成slice...的形式
+	append 的元素过多时，slice 会自动括容
+
+	slice = append(slice, 1, 2, 3)
+或者
+	var slice2 []int = []int{1, 2, 3}	
+	slice = append(slice , slice2...)
+	 
+
+
+切片拷贝copy() 按两者之间较少的个数拷贝， 方向同strcpy 
+	slice1 := []int{1, 2, 3, 4, 5}
+	xlice2 := []int{5, 4, 3}
+
+	copy(slice2, slice1) //1复制3个元素到2中
+	copy(slice1, slice2)
+=================================================================================
+设计切片的小函数
+	len() range() make() cap() copy()
+=================================================================================
+
+map:键值对的集合
+	map[string] int
+	声明一个键为sting了类型，值为int类型的map类型　的变量
+	var mymap map[string]int 
+
+创建map:make() 或者直接创建
+
+	mymap := make(map[string]int) // make()创建map是只用类型即可, 也可以指定cap
+	mymap := make(map[string]int, 100) //100的初始cap
+
+	直接创建 (不推荐)
+	var mymap map[string] int = map[string]int{
+								"1":  1,
+								"2":  2,
+	}
+	 键值对用key:val的形式写， 并用，隔开
+
+	往map里添加键值对:
+		mymap["1"] = 1
+		mymap["2"] = 2
+	
+	大概可以理解成这样 { {"1", 1}  , {"2", 2} } , 但他们是无续的
+
+	根据键查找值, 键是唯一的
+	intval, ok := mymap["1"]
+	ok 是一个bool 值， 成功找到返回true, 否则返回false
+
+遍历map: range
+
+	k, v := range(mymap)
+
+删除元素:delete(mymap, key)
+
+		delete(mymap, "1") //删除key＝"1"的元素
+====================================================================================
+	
+流程控制 if for switch goto break continue fallthrough
+
+if :
+	在有返回值的函数中，不允许将最终的return 卸载if..else 里, 但是if..else..外有return 时
+	if..else 里是可以有return 的
+
+switch i: i 可以是任何类型的变量
+		  不用break, 默认只在本case里执行, 需要向下执行一个case时用fallthrough
+		  i 甚至可以没有
+			switch  {
+			case condition1:
+				...
+			case condition2:
+				...
+			}
+for: 循环只有for 
+	for{
+			//死循环
+	}
+
+函数func:
+		func Name(参数列表) (返回列表) {
+			//函数体
+		}
+
+	任何变量，　函数首字母大写对外可见，　小写对外隐藏
+
+不定参数:
+
+	1。　同类型的个数不定的不定参数
+		func Mfunc(args ...int) {
+			//函数体
+			for k, v := range(args) {
+				fmt.Println(k, v)
+			}
+		}
+		...int 只能放在最后，表示一个int 类型的列表, 本质是一个[]int 切片
+		可以用range 遍历
+		
+		上面函数完全等于
+		func Mfunc(args []int) {
+			for k, v := range(args) {
+				fmt.Println(k, v)
+			}
+		}
+		但调用的方式是不同的
+		Mfunc(1, 2, 3, 4)
+		Mfunc([]int{1, 2, 3, 4}) //相对负载，要自己构造切片
+
+有意思的调用方式: 在变参函数体里, 用行参条用变参函数, 要用变量名name...表示列表　
+		func Myfunc(args ...int) {
+			myfunc2(args...) //用形参调用另一个变参函数
+			myfunc2(args[1:]...)
+		}
+
+	2。任意类型的不定参数　
+		用interface{} 代替类型
+
+		func Myfunc(args ...interface{}) {
+			//函数体
+		}
+			根据value.(type)来判断每个参数的类型, (type)必须用()括起来
+
+
+多返回值:
+
+
+匿名和闭包:
+		匿名函数没有名字，可以赋值给变量，也可以直接运行
+		赋值给变量
+		f := func(x, y int) int {
+			return x + y
+		}
+	 	使用函数变量
+			ret = f(1, 2) // ret = 3
+		
+		直接运行, 只能在函数中定义
+		func(ch chan int) {
+			ch <- ACK
+		} (reply_chan) //花括号后直接跟参数列表可以直接运行函数
