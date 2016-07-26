@@ -12,8 +12,8 @@ export GOROOT
 PATH=$PATH:$GOROOT/bin
 export PATH
 
-gopath要在~/.bashrc里面设置
-GOPATH=$HOME(工作目录路径, 因为没有，所以先随便填一个)
+gopath要在~/.bashrc里面设置, 然后source ~/.bashrc
+GOPATH=$HOME(工作目录路径, 因为没有，所以先随便填一个), 要经常换防止编译污染
 export GOPATH
 
 ========================================================================================================
@@ -42,7 +42,7 @@ p print
 go 常用命令
 
 go build / go install包名	编译
-godoc 包名  				生成包的文档
+go doc 包名  				生成包的文档,需要重定向到文件
 go fmt 包名					格式化代码
 go get url					从指定网址下载(谷歌， github...)
 go test 包名				test库包
@@ -63,6 +63,65 @@ TODO
 
 ======================================================================================================
 
+命令行参数, os包， flag包, strings包, strconv包
+
+os.Args 变量是一个切片，用于保存命令行参数
+
+v := strings.Join(os.Args[:], " ") 用" "空格连接每个命令行参数
+
+value, ok := strconv.Atoi(os.Args[1]), atoi转换
+
+flag.Parse() 解析命令行
+先定义解析的结果变量以及规则
+var (
+	infile *string = flag.String("i", "infile", "File contains input data")
+	outfile *string = filg.String("o", "outfile", "File to be written")
+)
+flag.Parse() 会将 -i 选项的参数存到 infile变量里， 默认为"infile" 
+
+	./test -i 123 -o 234
+	flag.Parse() 得到的结果为
+	*infile = "123"
+	*outfile = "234"
+
+	./test -i 123
+	flag.Parse() 得到的结果为
+	*infile = "123"
+	*outfile = "outfilr", 用默认的值
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+========================================================================================================
+
 第二章 顺序编程
 
 1. 变量 常用的变量定义
@@ -70,12 +129,17 @@ TODO
 	var v2 string		字符串
 	var v3 [10]int		10元素数组
 	var v4 []int		切片
-	var v5 struct{		结构
+	var v5 struct{		结构(类)
 		f int
 	}
 	var v6 *int			指针 (先接触的是类型, 先接触*为指针， 先接触[]为切片)
-	var v7 map[key]val  map
+	var v7 map[key]val  map[string]int
 	var v8 func(a int) int  匿名函数变量
+	var v9 chan int    channel类型
+
+	v.(type)可以查看变量的类型
+
+3元素类型: map[string]int   func(a int) (ret int)
 
 支持
 	var (
@@ -128,11 +192,11 @@ TODO
 
 
 go预定义常量 true, false, iota
-const 出现时iota 变0，iota每次出现都自动++iota 
+const 出现时iota 变0，iota每次出现都看成iota++
 
 const (
-	c0 = iota   // 1
-	c1 = iota   // 2
+	c0 = iota   // 0
+	c1 = iota   // 1
 )
 
 const 特殊简写
@@ -188,9 +252,9 @@ float32/float64
 	real(value2), imag(value2)可访问实部， 虚部
 
 
-字符串 string
+字符串常量 string
 
-	var v1 string = "hello, world"
+	var v1 string = "hello, world" , 用string 修饰的变量是常量
 	用len()可以获得字符串，数组，切片的成员个数
 
 	len(v1) 没哟尾0
@@ -217,10 +281,10 @@ float32/float64
 	[3][5]int					长度是3，  元素为 [5]int数组
 	[2][2][2]float64			长度是2，  元素是 [2][2]float64数组
 
-	数组是值类型，在函数传参中会传一份拷贝，不传递指针
+	数组是值类型，在函数传参中会传一份拷贝，不传递指针(传递指针的为slice interface chan map 4种)
 
 
-	 数组的等号右边写法
+	 数组的等号右边写法 类型+{}
 	 [5]int{1, 2, 3, 4, 5} 右边也要带上类型
 
 切片, 不定长数组
@@ -287,7 +351,7 @@ map:键值对的集合
 创建map:make() 或者直接创建
 
 	mymap := make(map[string]int) // make()创建map是只用类型即可, 也可以指定cap
-	mymap := make(map[string]int, 100) //100的初始cap
+	mymap := make(map[string]int, 100) //100的初始cap, 无法
 
 	直接创建 (不推荐)
 	var mymap map[string] int = map[string]int{
@@ -300,7 +364,7 @@ map:键值对的集合
 		mymap["1"] = 1
 		mymap["2"] = 2
 	
-	大概可以理解成这样 { {"1", 1}  , {"2", 2} } , 但他们是无续的
+	大概可以理解成这样(打印出来是这样) map["1":1 "2":2] , 但他们是无续的
 
 	根据键查找值, 键是唯一的
 	intval, ok := mymap["1"] //mymap["1"]既可以放在等号左边又能放在等号右边
@@ -354,7 +418,7 @@ for: 循环只有for
 				fmt.Println(k, v)
 			}
 		}
-		...int 只能放在最后，表示一个int 类型的列表, 本质是一个[]int 切片
+		...int 只能放在最后，表示一个int 类型的切片, 本质是一个[]int 切片
 		可以用range 遍历
 		
 		上面函数完全等于
@@ -369,7 +433,7 @@ for: 循环只有for
 
 有意思的调用方式: 在变参函数体里, 用行参条用变参函数, 要用变量名name...表示列表　
 		func Myfunc(args ...int) {
-			myfunc2(args...) //用形参调用另一个变参函数
+			myfunc2(args...) //用形参调用另一个变参函数(在append()里的切片就是这样传的
 			myfunc2(args[1:]...)
 		}
 
@@ -379,7 +443,7 @@ for: 循环只有for
 		func Myfunc(args ...interface{}) {
 			//函数体
 			for k, v := range(args) {
-				switch value.(type) {
+				switch v.(type) { //v.(type)返回的是类型, 不是返回一个字符串"int", 而是int
 				case int:
 						//do something
 				case string:
@@ -484,3 +548,296 @@ panic() 和 recover() //TODO
 
 
 go test 的测试中， 不支持fmt打印， 只能用t.Errorf() 打印
+
+
+
+
+
+================================================================================================
+第3章 面向对象, 函数不能单独存在, 需要寄存在对象中
+================================================================================================
+
+
+1. 为类型添加方法
+
+type Integer int  //同typedef 一样, 此时，Integer 和 int 是一样的
+为Integer 添加方法
+func (a Integer) Less(b Integer) bool {
+	return a < b
+} 此时， Integer 和 int 是不一样的，Integer 成了带有方法的类型
+
+var a Integer
+
+a.Less(2) //面向对象的函数调用方法, 函数寄存在a里
+less(a, 2) //面向过程的调用方法, 函数单独存在
+
+func (a Integer) Less(b Integer) bool {} //面向对象的函数声明方法, 函数寄存在a里
+func Less(a Integer, b Integer) bool {} //面向过程的函数声明方法, 函数单独存在
+
+
+(a Integer) 是普通变量, a+=2在函数返回后并不能改变 a的值
+(a *Integer) 是指针变量, *a+=2在函数返回后可以改变 *a的值
+
+数组是纯粹值语义, 无论是在函数传参还是普通赋值中，均会产生一份拷贝传递过去
+
+4个引用语义
+	slice
+	map
+	chan
+	interface
+这4个传递的是指针，指针所指的区域是可更改的
+	slice 的本质是
+	type slice struct {
+		first *T
+		len int
+		cap int
+	}
+
+利用struct 定义新类型 
+type Rect struct {
+	x, y float64
+	width, heigh float64
+}
+
+添加方法
+func (r *Rect) Area() float64 {
+	return r.width * r.height
+}
+
+初始化: //不一定非返返回指针类型
+	rect1 := new(Rect) //new用于返回该类型的指针
+	rect2 := &Rect{} //为指定的为0
+	rect3 := &Rect{0, 0, 100, 200} //按顺序赋值
+	rect4 := &Rect{with: 100, height: 200)//不按顺序赋值，未指定的为0, 冒号等于与c语言里的.＝一样
+
+	rect5 := Rect{0, 0, 100, 200}
+
+go 在创建指针对象的时候一般会用 (go 自己提供的类似构造函数)
+	func NewRect(x, y, width, height float64) *Rect {
+		return &Rect{x, y, width, height}
+	}
+
+
+/*****************************************************************************************
+
+
+
+匿名组合(类似类的继承)
+type Base struct {
+	name string
+}
+
+type C truct {
+	Base //继承该类, Base里有的, C里都会继承过来 
+	addr string
+}
+
+type D struct {
+	*Base //也可以是一个类的指针 
+	tel string
+}
+
+假如Base 实现了 A, B 方法
+C调用他们可以有两种形式: C.A() 或者   C.Base.A()
+
+成员冲突时， 会访问最外层的变量
+********************************************************************************************/
+
+今天状态不好，没看懂#############################################################
+
+接口
+
+	一个类只要实现了接口要求的所有函数，则这个类就实现了这个接口
+
+例如有一个接口 
+	type IFile interface {
+		Read(buf []byte) (n int, err errror)
+		Write(buf []byte) (n int, err error)
+		Seek(off int64, whence int) (pos int64, err error)
+		Close() error	
+	}
+
+有一个类
+	type File struct {
+		//body	
+	}
+该类实现了IFile接口的所有函数
+	func (file *File) Read(buf []byte) (n int, err error) {
+		//body
+	}
+
+	func (file *File) Write(buf []byte) (n int, err error) {
+		//body
+	}
+	func (file *File) Seek(off int64, whence int) (pos int64, err error) {
+		//body
+	}
+	func (file *File) Close() error {
+		//body
+	}
+则File类实现了IFile接口
+
+
+接口赋值
+	1.对象赋值给接口要用指针, 前提是对象实现了接口
+		var a Integer = 1
+		var b Interface1 = &a
+
+	2. 将接口a赋值给接口b， 前提是两个接口所包含的函数相同(顺序可以不同), 或者大的赋值给小个
+		b 是 a 的子集
+
+接口查询, 可以查询函数名，也可以查询函数类型
+
+
+
+
+
+
+
+
+
+===================================================================================================================
+
+并发编程
+
+轻量级线程gorouine，并发协程, 用go调用函数
+	
+func Add(x, y int) {
+	r := x + y
+	fmt.Println(r)
+}
+
+go Add(1, 1) , Add()会与主程序并发的执行, 如果有返回值，会被丢弃
+
+并发通信 写->5, 4, 3, 2, 1->读
+	channel: 一个channel 只能是一种类型，类似类型安全的管道	
+	类型为 chan type
+	var ch chan int // ch是一个int类型的chan
+	
+	创建chan  make(chan type) //不带缓冲的chan, 容量为1
+	
+	写入chan   ch <- value
+		写入chan(写满时)会导致所在(goroutine)程序阻塞， 直到chan中的东西被读出而不满时
+	
+	读chan 	   value := <- ch // <-ch 会忽略读到的东西, 判断是否可读时可用
+		如果chan是空的，读操作会是所在(goroutine)程序阻塞直到chan中被写入数据而有东西可读
+
+select:同switch 类似但case条件必须是面向chan的io操作
+	
+	 select {
+	 	case <-chan: //可读时
+		case chan <- value: //可写时
+		defaule:
+
+	} //当既可读，又可写时, select 只执行一次，case优先级从上到下
+	select 也可以监控多个chan
+
+	select {
+		case chan <-0:
+		case chan <-1:
+	} //表明 只写时多个case 之间没有顺序
+
+带缓冲的chan, 实现消息队列(先入先出)
+	c := make(chan int, 1024), 好处缓冲区写满之前的写操作不会阻塞 
+	可以读取一次数据 <-c
+	也可以循环读写数据 for i := range c
+
+
+
+超时机制, 利用select 添加超时检查chan
+
+	timeout := make(chan bool, 1) //超时检查chan
+
+	go func() {
+		time.sleep(1e9)
+		timeout <- true //当timeout可读时，就是超时了
+	}() // 类似计时器
+
+	select {
+		case <-ch://工作chan
+			//do something
+		case <-timeout://超时检查chan, 避免ch长时间阻塞
+			//ch超时了
+	}
+	
+
+chan的传递
+
+单向chan， 限制函数只能从该chan里读或者写, 是对正常chan的限制
+
+	var ch1 chan int     //正常的chan
+	var ch2 chan<- int   //只写的chan
+	var ch3 <-chan int   //只读的chan
+
+	也可以基于正常chan通过强转获得单向chan
+
+	ch4 := make(chan int) //正常chan
+	ch5 := <-chan int(ch4) //强转成只读的chan
+	ch6 := chan<- int(ch4) //强转成只写的chan
+
+3种类型类型 
+	chan int  双向chan
+	chan<- int 只写chan
+	<-chan int 只读chan
+
+关闭chan
+	close(ch)
+	x, ok := <-ch 判断ch是否已经关闭
+
+
+
+ 出让时间片
+	runtime.Goshed()
+
+ 同步sync包
+	
+	sync.Mutex锁和sync.RWMutex锁 (sync.Mutex, sync.RWMutex 是2个类型)
+	
+	sync.Mutex 实现了Lock()和Unlock()方法
+	sync.RWMutex 实现了RLock(), Lock() 和Unlock() RUnlock()
+
+全局唯一操作 sync.Once类型的Do()方法
+	
+	var once sync.once
+	func setup() {
+		a = "hello, world"
+	}
+	func doprint() {
+		once.Do(setup)
+		print(a)
+	}	
+
+
+
+=========================================================================================
+网络编程
+=====================================================================================
+net 包
+
+建立连接
+	net.Dial(net, addr strint) (Conn, error) //拨号函数 
+	net 是协议名字, tcp, udp, ip等
+	addr是域名或者ip:port
+
+	conn, err := net.Dial("tcp", "172.16.0.89:2010")
+	conn 有Write(切片) 和 Read(切片) 方法
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
