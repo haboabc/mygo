@@ -137,8 +137,6 @@ flag.Parse() 会将 -i 选项的参数存到 infile变量里， 默认为"infile
 	var v8 func(a int) int  匿名函数变量
 	var v9 chan int    channel类型
 
-	v.(type)可以查看变量的类型
-
 3元素类型: map[string]int   func(a int) (ret int)
 
 支持
@@ -274,6 +272,18 @@ float32/float64
 		//并不是每个字符都占一个字节
 	}
 	
+多行字符串:
+	1. 用+ 号连接
+		s := "hello" +  //加号必须放在上一行
+			 "world"
+
+	2. 用反引号
+		s := `hello\n
+		world`, 反引号里的字符不会被转义, 故上式只含一个换行
+	3.字符串改字符切片[]rune
+		s := "hello, world"
+		array := []rune(s) //用强转就可以
+
 数组
 	[32]byte					长度为32， 元素为byte类型
 	[32]struct{x, y int32}		长度为32， 元素为struct类型	
@@ -281,7 +291,7 @@ float32/float64
 	[3][5]int					长度是3，  元素为 [5]int数组
 	[2][2][2]float64			长度是2，  元素是 [2][2]float64数组
 
-	数组是值类型，在函数传参中会传一份拷贝，不传递指针(传递指针的为slice interface chan map 4种)
+	数组是值类型，在函数传参中会传一份拷贝，不传递指针(传递时含有指针的为slice interface chan map 4种)
 
 
 	 数组的等号右边写法 类型+{}
@@ -338,9 +348,81 @@ slice 遍历同数组，可以用len()， 可以用range()
 
 	copy(slice2, slice1) //1复制3个元素到2中
 	copy(slice1, slice2)
+
+那当我们需要将slice做为函数参数传入，并且函数会修改slice(包括：元素值，len, cap)时，怎么办呢。这里说三种方法。
+
+slice 长度可变，当作为函数参数传递时，内存中会有两份slice(通过打印地址可看出)，但这两份
+共享底层的一个array（slice 是基于array的), 由于底层的array 至于一个，所以
+	１。当只修改slice的元素值的时候，main() 和　func() 里的slice 都会边
+		底层array 1 2 3 ---> 0 2 3
+	2 。当修改涉及slice 的len的时候，由于底层的array（定长）只有一个，main()使得array
+		底层array 1 2 3 
+		func() 里的 slice 1 2
+		main() 里的 slice 1 2 3
+		slice 是基于array的，但改变不了array的长度
+
+切片类型
+type slice struct  {
+	Length int
+	Capicity int
+	array *bype
+} //所以传递slice类型只用arry指针改变array的元素值，无法改变Length,Capicity的值（这两个变量传的不是指针)
+	
+结论：
+	1. 只改变slice的元素值的时候，传递slice既可以
+	2. 需要改变slice的len, cap的时候，需要传递&slice
+
+实际中有３中比较好的方法 //来自推库
+	１。传　*[]int 指针
+		func modify(s *[]int) {
+			//do something
+		}
+	2。 将slice 返回覆盖原来的sliceo
+		func modify(s []int) []int {
+			//do something
+			return s	
+		}
+	3。 更常用的方法是给类型添加方法, 面向对象
+		typ slice []int
+
+		func (s *slice) modify() {
+			//do something
+		}
+
+如何使用slice 指针呢?
+ *slice 表示slice对象
+ 注意优先级的问题(*与[], 当多个运算符在一起时，需要注意)
+ (*slice)[index]才能正确引用对象
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 =================================================================================
 涉及切片的小函数
 	len() range() make() cap() copy() append()
+没有现成的删除小函数,需要用删除数组元素的方法删除元素,
+	元素在末尾
+	元素在中间
 =================================================================================
 
 map:键值对的集合
@@ -348,7 +430,7 @@ map:键值对的集合
 	声明一个键为sting了类型，值为int类型的map类型　的变量
 	var mymap map[string]int 
 
-创建map:make() 或者直接创建
+创建map:make() 或者直接创建, make 用于创建对象而不是指针， new() 是创建指针 
 
 	mymap := make(map[string]int) // make()创建map是只用类型即可, 也可以指定cap
 	mymap := make(map[string]int, 100) //100的初始cap, 无法
@@ -443,7 +525,7 @@ for: 循环只有for
 		func Myfunc(args ...interface{}) {
 			//函数体
 			for k, v := range(args) {
-				switch v.(type) { //v.(type)返回的是类型, 不是返回一个字符串"int", 而是int
+				switch v.(type) { //v.(type)返回的是类
 				case int:
 						//do something
 				case string:
@@ -452,7 +534,7 @@ for: 循环只有for
 				}
 			}
 		}
-			根据value.(type)来判断每个参数的类型, (type)必须用()括起来
+			根据value.(type)来判断每个参数的类型,只适用于接口类型 (type)必须用()括起来
 
 
 多返回值:
@@ -553,6 +635,7 @@ go test 的测试中， 不支持fmt打印， 只能用t.Errorf() 打印
 
 
 
+
 ================================================================================================
 第3章 面向对象, 函数不能单独存在, 需要寄存在对象中
 ================================================================================================
@@ -622,13 +705,14 @@ go 在创建指针对象的时候一般会用 (go 自己提供的类似构造函
 
 
 
-匿名组合(类似类的继承)
+匿名组合(实现类的继承), 如果我么希望给一个类加一些东西，或者借用某个类的功能时, 这是一个不错的选择
 type Base struct {
 	name string
 }
 
 type C truct {
-	Base //继承该类, Base里有的, C里都会继承过来 
+	//Base只有类型没有变量名,是匿名组合实现继承的方式
+	Base //继承该类, Base里有的, C里都会继承过来
 	addr string
 }
 
@@ -641,6 +725,13 @@ type D struct {
 C调用他们可以有两种形式: C.A() 或者   C.Base.A()
 
 成员冲突时， 会访问最外层的变量
+继承的类是以去掉包名后的类型名(不带*)存在的, 所以以下是不可以的
+type E struct {
+	*Base
+	Name string
+	test.Base
+}//
+
 ********************************************************************************************/
 
 今天状态不好，没看懂#############################################################
@@ -649,7 +740,7 @@ C调用他们可以有两种形式: C.A() 或者   C.Base.A()
 
 	一个类只要实现了接口要求的所有函数，则这个类就实现了这个接口
 
-例如有一个接口 
+例如有一个接口, 接口里声明的函数没有func关键字
 	type IFile interface {
 		Read(buf []byte) (n int, err errror)
 		Write(buf []byte) (n int, err error)
@@ -679,17 +770,52 @@ C调用他们可以有两种形式: C.A() 或者   C.Base.A()
 
 
 接口赋值
-	1.对象赋值给接口要用指针, 前提是对象实现了接口
+	1.类赋值给接口最好用指针, 前提是类实现了接口
 		var a Integer = 1
-		var b Interface1 = &a
+		var b Interface1 = &a, 假定Integer实现了Interface1接口
 
-	2. 将接口a赋值给接口b， 前提是两个接口所包含的函数相同(顺序可以不同), 或者大的赋值给小个
-		b 是 a 的子集
+	2. 将接口a(大接口)赋值给接口b(小接口), 前提是两个接口所包含的函数相同(顺序可以不同), 或者大的赋值给小个b 是 a 的子集
+	3.如果有以下函数
+		func(a Integer)add(b Integer){
+
+		}
+	  则，go 自动实现以下函数
+		func(a *Integer)add(b Integer) {
+
+		}//故，接口赋值指针总是可以的
+		
+
 
 接口查询, 可以查询函数名，也可以查询函数类型
 
+1. 查询某个类是否实现了某接口
+	if _, ok := file1.(two.IStream); ok {
+		//dosomthing
+	}
+	如果file1类实现了括号里的接口, 则ok为真
+
+2.接口里数据类型的查询
+	var v1 interface{} = "abc"
+
+	switch v:= v1.(type)
+		case int:
+		case string:
+		...
 
 
+
+3. 表示任意类型:空接口 interface{} 是一个类型， 表示任意类型
+	go 里的一切事物均可以赋值个空接口, 因为所有事物都实现了空接口
+	所以interface{}可以接受任何类型的数据
+	
+	var v1 interface{} = 1
+	var v2 interface{} = "abc"
+	var v3 interface{} = struct{x int}{1}
+	var v3 interface{} = &struct{x int}{1}
+
+	interface{} 是个类型，表示任意类型
+	...interface{} 是个类型，用在参数列表里表示任意个数，任意类型
+	
 
 
 
